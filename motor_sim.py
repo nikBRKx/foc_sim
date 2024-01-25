@@ -72,7 +72,7 @@ from foc import FOC_Controller, FOC_CWrapper, alignmentRatio
 # average torque produced when using block communtation.
 #
 # In block commutation, two phases are conducting at a time, while the third phase
-# has zero current.  Each motor electrical revolution consists of 6-steps. 
+# has zero current.  Each motor electrical revolution consists of 6-steps.
 # The phases are energized so that they maximize torque production during that step
 # of the motor revolution.
 #
@@ -83,7 +83,7 @@ from foc import FOC_Controller, FOC_CWrapper, alignmentRatio
 #
 # The average torque produced over the 1/6th (1/6 revolution == pi/3 radians) will be
 #   Tavg = 1/(pi/3) * Kt * integral(Ia*sin(A) + Ib*sin(A-2*pi/3) + Ic*sin(A+2*pi/3), A, pi/6, pi/2)
-# 
+#
 # For block commutation Ia=-Ib, Ic = 0
 #   Tavg = 1/(pi/3) * Kt * integral(Ia*sin(A) - Ia*sin(A-2*pi/3), dA, pi/6, pi/2)
 #
@@ -128,7 +128,7 @@ from foc import FOC_Controller, FOC_CWrapper, alignmentRatio
 #  v_center = va + (dIb/dt*L + Ib*R) + (dIc/dt*L + Ic*R) - backemf_a
 #
 #  vb - backemf_b - v_center = dIb/dt*L + Ib*R
-#  vc - backemf_c - v_center = dIc/dt*L + Ic*R  
+#  vc - backemf_c - v_center = dIc/dt*L + Ic*R
 #
 #  v_center = va + vb - backemf_b - v_center + vc - backemf_c - v_centerx - backemf_a
 #  3 * v_center = (va-backemf_a) + (vb-backemf_b) + (vc-backemf_c
@@ -149,16 +149,16 @@ from foc import FOC_Controller, FOC_CWrapper, alignmentRatio
 # are based on block commutation control of motors
 class Maxon_339283:
     def __init__(self):
-	self.torque_constant = 51e-3 # Nm/A == V/(rad/s)
-	self.terminal_resistance = 5.03
-	self.terminal_inductance = 2.24e-3 #mH
-	self.rotor_inertia = 92.5 * 1e-7  # gcm2 = kg/1000 * (m/100 * m/100) = kg/m2/1e7
+        self.torque_constant = 51e-3 # Nm/A == V/(rad/s)
+        self.terminal_resistance = 5.03
+        self.terminal_inductance = 2.24e-3 #mH
+        self.rotor_inertia = 92.5 * 1e-7  # gcm2 = kg/1000 * (m/100 * m/100) = kg/m2/1e7
 
-	#no load speed = 4380 rpm
-	#no load speed = 458.67 rad/s
-	#no load current = 73mA
-	#no load torque = 73mA * 51  = 3.723e-3 Nm
-	self.friction = 3.723e-3 / 458.67  # Nm/(rad/s)
+        #no load speed = 4380 rpm
+        #no load speed = 458.67 rad/s
+        #no load current = 73mA
+        #no load torque = 73mA * 51  = 3.723e-3 Nm
+        self.friction = 3.723e-3 / 458.67  # Nm/(rad/s)
 
         self.max_torque = 54.7e-3
 
@@ -187,120 +187,120 @@ class Maxon_339283_Controller_Gains:
 # However these arrays can easily get too big if simulation is run too long.
 class MotorSim:
     def __init__(self, motor, load_inertia, start_position=0.0):
-	self.motor =motor #motor parameter (backemf contant, torque constant, terminal resistance, terminal inductance, inertia, etc..)
+        self.motor =motor #motor parameter (backemf contant, torque constant, terminal resistance, terminal inductance, inertia, etc..)
         self.load_inertia = load_inertia
-	self.ia = [0.0]  # phase currents
-	self.ib = [0.0]
-	self.ic = [0.0]
-	self.vxa = [0.0]  # terminal voltages
-	self.vxb = [0.0]
-	self.vxc = [0.0]
-	self.va = [0.0]  # phase voltages
-	self.vb = [0.0]
-	self.vc = [0.0]
+        self.ia = [0.0]  # phase currents
+        self.ib = [0.0]
+        self.ic = [0.0]
+        self.vxa = [0.0]  # terminal voltages
+        self.vxb = [0.0]
+        self.vxc = [0.0]
+        self.va = [0.0]  # phase voltages
+        self.vb = [0.0]
+        self.vc = [0.0]
         self.backemf_a = [0.0]  # back-emf voltages
         self.backemf_b = [0.0]
         self.backemf_c = [0.0]
-	self.torque = [0.0]   # torque produced  
-	self.velocity = [0.0] # motor velocity (radians/sec)
-	self.position = [start_position] # motor position (radians)
-	self.t = [0.0]
-    
+        self.torque = [0.0]   # torque produced
+        self.velocity = [0.0] # motor velocity (radians/sec)
+        self.position = [start_position] # motor position (radians)
+        self.t = [0.0]
+
     def update(self, t, dt, vxa, vxb, vxc):
-	""" Updates motor state (phase currents, velocity, position) given excited voltages on each phase
-	t is the current time
-	dt is the timestep
-	"""
-	motor = self.motor
-	ia = self.ia[-1]
-	ib = self.ib[-1]
-	ic = self.ic[-1]
-	
-	# phase voltages are not absolute (since there is not ground)
-	# as such sum of voltages should be 0.
-	# to acomplish this, subtrace out average
-	vcenter = ( vxa + vxb + vxc ) / 3.0
-	va = vxa - vcenter
-	vb = vxb - vcenter
-	vc = vxc - vcenter
+        """ Updates motor state (phase currents, velocity, position) given excited voltages on each phase
+        t is the current time
+        dt is the timestep
+        """
+        motor = self.motor
+        ia = self.ia[-1]
+        ib = self.ib[-1]
+        ic = self.ic[-1]
 
-	# resistance of a single phase winding
-	R = motor.terminal_resistance * 0.5	
+        # phase voltages are not absolute (since there is not ground)
+        # as such sum of voltages should be 0.
+        # to acomplish this, subtrace out average
+        vcenter = ( vxa + vxb + vxc ) / 3.0
+        va = vxa - vcenter
+        vb = vxb - vcenter
+        vc = vxc - vcenter
 
-	# determine voltages that are seen by inductances of each phase
-	# by removing resitance and back-emf voltages
-	Lva = va - self.backemf_a[-1] - ia * R
-	Lvb = vb - self.backemf_b[-1] - ib * R
-	Lvc = vc - self.backemf_c[-1] - ic * R
+        # resistance of a single phase winding
+        R = motor.terminal_resistance * 0.5
 
-	# inductance of a single phase
-	L = motor.terminal_inductance * 0.5
+        # determine voltages that are seen by inductances of each phase
+        # by removing resitance and back-emf voltages
+        Lva = va - self.backemf_a[-1] - ia * R
+        Lvb = vb - self.backemf_b[-1] - ib * R
+        Lvc = vc - self.backemf_c[-1] - ic * R
 
-	# volatage will induce current change in phase current
-	ia += Lva / L * dt
-	ib += Lvb / L * dt
-	ic += Lvc / L * dt
+        # inductance of a single phase
+        L = motor.terminal_inductance * 0.5
 
-	# sum of current should be 0, kill non-zero (circulating) currents
-	# this assumes the motor is Wye-wound and not Delta wound
+        # volatage will induce current change in phase current
+        ia += Lva / L * dt
+        ib += Lvb / L * dt
+        ic += Lvc / L * dt
+
+        # sum of current should be 0, kill non-zero (circulating) currents
+        # this assumes the motor is Wye-wound and not Delta wound
         iavg = (ia+ib+ic)/3.0
         ia -= iavg
         ib -= iavg
         ic -= iavg
 
-	# sin of motor angle will be important for a couple calcs
+        # sin of motor angle will be important for a couple calcs
         el_angle = self.position[-1] * self.motor.pole_pairs
-	sa = sin(el_angle)
-	sb = sin(el_angle-pi*2/3)
-	sc = sin(el_angle+pi*2/3)
+        sa = sin(el_angle)
+        sb = sin(el_angle-pi*2/3)
+        sc = sin(el_angle+pi*2/3)
 
-	# determine torque
-	# note that the torque_constant is based on block commutation.
-	# read notes about motor torque with sinusoidal control to
-	# get a better idea scale constant comes from
-	scale  = 0.60459978807807258  # pi/3 / sqrt(3)
-	torque_constant = motor.torque_constant * scale
-	torque = (ia*sa + ib*sb + ic*sc) * torque_constant
+        # determine torque
+        # note that the torque_constant is based on block commutation.
+        # read notes about motor torque with sinusoidal control to
+        # get a better idea scale constant comes from
+        scale  = 0.60459978807807258  # pi/3 / sqrt(3)
+        torque_constant = motor.torque_constant * scale
+        torque = (ia*sa + ib*sb + ic*sc) * torque_constant
 
-	# determine new motor velocity (include viscous friction)
+        # determine new motor velocity (include viscous friction)
         velocity = self.velocity[-1]
         velocity += (torque - velocity*motor.friction)/(motor.rotor_inertia+self.load_inertia)*dt
 
-	# determine new motor position
-	position = self.position[-1] + velocity*dt
+        # determine new motor position
+        position = self.position[-1] + velocity*dt
 
-	# determine new back-emf voltages (for next time)
-	# for motor V/(rad/s) == A/Nm == 1/(Nm/A)
-	#
-	# Nm/A = Nm/A * s/s
-	# Nm/A = ((Nm/s)*s)/A
-	# Nm/A = (W*s)/A
-	# Nm/A = (W/A)*s
-	# Nm/A = (V)*s
-	# Nm/A = V/(1/s)
-	# Nm/A = V/(rad/s)
-	voltage_constant = torque_constant
-	backemf_a = sa * velocity * voltage_constant
-	backemf_b = sb * velocity * voltage_constant
-	backemf_c = sc * velocity * voltage_constant
+        # determine new back-emf voltages (for next time)
+        # for motor V/(rad/s) == A/Nm == 1/(Nm/A)
+        #
+        # Nm/A = Nm/A * s/s
+        # Nm/A = ((Nm/s)*s)/A
+        # Nm/A = (W*s)/A
+        # Nm/A = (W/A)*s
+        # Nm/A = (V)*s
+        # Nm/A = V/(1/s)
+        # Nm/A = V/(rad/s)
+        voltage_constant = torque_constant
+        backemf_a = sa * velocity * voltage_constant
+        backemf_b = sb * velocity * voltage_constant
+        backemf_c = sc * velocity * voltage_constant
 
-	# record 
-	self.vxa.append(vxa)
-	self.vxb.append(vxb)
-	self.vxc.append(vxc)
-	self.va.append(va)
-	self.vb.append(vb)
-	self.vc.append(vc)
-	self.ia.append(ia)
-	self.ib.append(ib)
-	self.ic.append(ic)
-	self.backemf_a.append(backemf_a)
-	self.backemf_b.append(backemf_b)
-	self.backemf_c.append(backemf_c)
-	self.torque.append(torque)
-	self.velocity.append(velocity)
-	self.position.append(position)
-	self.t.append(t)
+        # record
+        self.vxa.append(vxa)
+        self.vxb.append(vxb)
+        self.vxc.append(vxc)
+        self.va.append(va)
+        self.vb.append(vb)
+        self.vc.append(vc)
+        self.ia.append(ia)
+        self.ib.append(ib)
+        self.ic.append(ic)
+        self.backemf_a.append(backemf_a)
+        self.backemf_b.append(backemf_b)
+        self.backemf_c.append(backemf_c)
+        self.torque.append(torque)
+        self.velocity.append(velocity)
+        self.position.append(position)
+        self.t.append(t)
 
         return (position, velocity, ia, ib, ic)
 
@@ -317,11 +317,11 @@ def sim():
 
     alignmentRatio(motor)
 
-    # motor simulator 
+    # motor simulator
     motor_sim = MotorSim(motor, load_inertia)
 
-    
-    # Simulate starting offset to absolte motor position measurement 
+
+    # Simulate starting offset to absolte motor position measurement
     #  (for testing incremental alignment)
     el_angle_offset = 0.0 #-20.0 * pi/180.
     angle_offset = el_angle_offset / motor.pole_pairs
@@ -341,7 +341,7 @@ def sim():
     # Inverter PWM frequency. Simulator does not simulate actual PWM (on-off with specific duty cycle)
     # However simulator does change output voltage in discrete times steps to mirror actual PWM based
     # inverter that can only change its output at discrete time-steps.
-    pwm_dt = 1.0 / 35e3 
+    pwm_dt = 1.0 / 35e3
 
     # How many PWM cycles occur before FOC update is run.
     # If this value is 1 the FOC is recalculated after every PWM cycle
@@ -362,7 +362,7 @@ def sim():
 
     foc = FOC_Controller(foc_dt, motor, d_gains, q_gains, supply_current_limit)
     #foc = FOC_CWrapper(foc_dt, motor, d_gains, q_gains, supply_current_limit)
-    foc.reset(motor_sim.velocity[-1], supply_voltage) 
+    foc.reset(motor_sim.velocity[-1], supply_voltage)
 
     #
     pwm_t = []
@@ -381,7 +381,7 @@ def sim():
 
     motor_sim_substeps = 8
     motor_sim_dt = pwm_dt/motor_sim_substeps
-    runtime = 15e-3 
+    runtime = 15e-3
     while t < runtime:
         for j in range(foc_update_cycles):
             for i in range(motor_sim_substeps):
@@ -403,7 +403,7 @@ def sim():
     tc = pylab.array(foc.t) * 1e3
 
     va = pylab.array(motor_sim.va)
-    vb = pylab.array(motor_sim.vb)    
+    vb = pylab.array(motor_sim.vb)
     vc = pylab.array(motor_sim.vc)
     backemf_a = pylab.array(motor_sim.backemf_a)
     backemf_b = pylab.array(motor_sim.backemf_b)
@@ -412,7 +412,7 @@ def sim():
     ib = pylab.array(motor_sim.ib)
     ic = pylab.array(motor_sim.ic)
     vxa = pylab.array(motor_sim.vxa)
-    vxb = pylab.array(motor_sim.vxb)    
+    vxb = pylab.array(motor_sim.vxb)
     vxc = pylab.array(motor_sim.vxc)
 
     cmd_d = pylab.array(foc.cmd_d)
@@ -437,23 +437,23 @@ def sim():
         pylab.plot(pwm_t, pwm_cmd_c, 'b.--', label='pwm_cmd c')
 
         pylab.legend()
-	pylab.title(foc.name)
-        pylab.xlabel('time ms')    
+        pylab.title(foc.name)
+        pylab.xlabel('time ms')
         pylab.subplot(3,1,2)
         pylab.plot(tc, 1e3*pylab.array(foc.target_id), 'r', label='target Id (mA)')
         pylab.plot(tc, 1e3*pylab.array(foc.measured_id), 'g', label='measured Id (mA)')
         pylab.legend()
-        pylab.xlabel('time ms')    
+        pylab.xlabel('time ms')
         pylab.ylabel('mAmps')
         pylab.subplot(3,1,3)
         pylab.plot(tc, foc.target_iq, 'r', label='target Iq')
         pylab.plot(tc, foc.measured_iq, 'g', label='measured Iq')
         pylab.legend()
-        pylab.xlabel('time ms')    
-        pylab.ylabel('Amps')    
+        pylab.xlabel('time ms')
+        pylab.ylabel('Amps')
 
-    
-    if False : # PI controllers
+
+    if False: # PI controllers
         pylab.figure("PI Controllers")
         d_ctrl = foc.d_ctrl
         d_ctrl_t = pylab.array(d_ctrl.t) * 1e3
@@ -461,7 +461,7 @@ def sim():
         pylab.plot(d_ctrl_t, d_ctrl.i_term, 'r', label='d_ctrl : i-term')
         pylab.plot(d_ctrl_t, d_ctrl.output, 'b', label='d_ctrl : output')
         pylab.legend()
-        pylab.xlabel('time ms')    
+        pylab.xlabel('time ms')
         q_ctrl = foc.q_ctrl
         q_ctrl_t = pylab.array(q_ctrl.t) * 1e3
         pylab.subplot(2,1,2)
@@ -470,7 +470,7 @@ def sim():
         pylab.plot(tc, foc.cmd_q_filt, 'g', label='cmd_q_filt')
 
         pylab.legend()
-        pylab.xlabel('time ms')    
+        pylab.xlabel('time ms')
 
     print('peak current', max(ia.max(), ib.max(), ic.max()))
 
@@ -511,7 +511,7 @@ def sim():
     velocity = pylab.array(motor_sim.velocity)
     mech_power = torque * velocity
 
-    
+
     pylab.subplot(3,1,3)
     pylab.plot(ts, mech_power, 'r', label='mechanical power')
     pylab.plot(ts, elec_power, 'g', label='electical power')
@@ -519,9 +519,9 @@ def sim():
     pylab.plot(ts, rpower, 'b', label='heating power')
     pylab.plot(ts, Lpower, 'c', label='inductive power')
     pylab.plot(ts, rpower+mech_power+Lpower, 'k--', label='heating + mech + inductive')
-    #pylab.plot(ts, powerA, 'r', label='power A')	
-    #pylab.plot(ts, powerB, 'g', label='power B')	
-    #pylab.plot(ts, powerC, 'b', label='power C')	    
+    #pylab.plot(ts, powerA, 'r', label='power A')
+    #pylab.plot(ts, powerB, 'g', label='power B')
+    #pylab.plot(ts, powerC, 'b', label='power C')
     pylab.legend()
 
 
@@ -563,12 +563,13 @@ def sim():
         pylab.plot(tc, foc.est_vd, 'b', label='Vd est')
         pylab.legend()
         pylab.subplot(3,1,3)
+
         pylab.plot(tc, pylab.array(foc.est_el_angle_offset)*180/pi, 'r', label='est_angle_offset (degrees)')
         pylab.plot(tc, pylab.array(foc.el_angle_offset)*180/pi, 'g', label='angle_offset (degrees)')
-	pylab.plot(tc, (el_angle_offset-pylab.array(foc.el_angle_offset))*180/pi, 'k--', label='actual - angle_offset (degrees)')
+        pylab.plot(tc, (el_angle_offset-pylab.array(foc.el_angle_offset))*180/pi, 'k--', label='actual - angle_offset (degrees)')
         pylab.plot([0,tc[-1]], [el_angle_offset*180/pi, el_angle_offset*180/pi], 'b-*', label='actual el angle offset (degrees)')
         pylab.legend()
-        print foc.measured_iq[-1]
+        print(foc.measured_iq[-1])
 
 
     if False:
@@ -576,7 +577,7 @@ def sim():
         current_vs_torque = ( ((ia*ia + ib*ib + ic*ic)*0.5)**0.5 ) / torque * motor.torque_constant
         pylab.plot(ts, current_vs_torque, label="Current/Torque sqrt(Ia^2+Ib^2+Ic^2)/(2*torque)")
         pylab.legend()
-        print "Current/Torque sqrt(Ia^2+Ib^2+Ic^2)/(2*torque) : ", current_vs_torque[20:].mean()
+        print("Current/Torque sqrt(Ia^2+Ib^2+Ic^2)/(2*torque) : ", current_vs_torque[20:].mean())
 
     pylab.show()
 

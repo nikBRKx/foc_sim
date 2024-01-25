@@ -363,10 +363,8 @@ from math import sin, cos, pi, sqrt
 #
 
 
-
-
 def alignmentRatio(motor):
-    """ Calculates ratio of motor (backemf*poles_pole_pair) to (L*Iq_max)
+    """Calculates ratio of motor (backemf*poles_pole_pair) to (L*Iq_max)
     This ratio determines how well interative alignment routie will converge.
     If ratio is high (> 100) the value will converge easily.
     If ratio is 3 or less, then algorithm might not converge when both
@@ -379,24 +377,25 @@ def alignmentRatio(motor):
     # L = motor.terminal_inductance / sqrt(2)
     # max_iq * L = motor.max_torque * pi/3 / motor.torque_constant * sqrt(2)*3/pi * motor.terminal_inductance / sqrt(2)
     # max_iq * L = motor.max_torque * motor_terminal_inductance / motor.torque_constant
-    #max_iq = motor.max_torque * motor_terminal_inductance / motor.torque_constant
+    # max_iq = motor.max_torque * motor_terminal_inductance / motor.torque_constant
 
     # backemf_constant = motor.torque_constant # Nm/A = V/(rad/s)
     # (backemf_constant*motor.pole_pairs) / (L*max_iq) =
     # (motor.torque_constant*motor.pole_pairs) / (motor.max_torque * motor_terminal_inductance / motor.torque_constant)
     # (motor.torque_constant**2 * motor.pole_pairs) / (motor.max_torque * motor.terminal_inductance)
 
-    ratio = (motor.pole_pairs * motor.torque_constant**2) / (motor.max_torque * motor.terminal_inductance)
+    ratio = (motor.pole_pairs * motor.torque_constant**2) / (
+        motor.max_torque * motor.terminal_inductance
+    )
     print("Motor alignment ratio is ", ratio)
     return ratio
 
 
-
-
 class PI_Controller:
-    """ Specialized PI controller for FOC control, limits both output
+    """Specialized PI controller for FOC control, limits both output
     and I-term to range of -1 to 1
     """
+
     def __init__(self, gains):
         p_gain, i_gain = gains
         self.p_gain = p_gain
@@ -407,12 +406,12 @@ class PI_Controller:
 
     def update(self, t, dt, error):
         i_term = self.i_term[-1]
-        i_term += error*self.i_gain*dt
+        i_term += error * self.i_gain * dt
         if i_term > 1.0:
             i_term = 1.0
         elif i_term < -1.0:
             i_term = -1.0
-        output = error*self.p_gain + i_term
+        output = error * self.p_gain + i_term
         if output > 1.0:
             output = 1.0
         elif output < -1.0:
@@ -438,8 +437,8 @@ class FOC_Controller:
         self.measured_id = [0.0]
         self.measured_iq = [0.0]
 
-        self.input_target_torque = [0.0] # what torque was requested from higher level
-        self.target_torque = [0.0] #what torque was actually limited to
+        self.input_target_torque = [0.0]  # what torque was requested from higher level
+        self.target_torque = [0.0]  # what torque was actually limited to
         self.target_id = [0.0]
         self.target_iq = [0.0]
 
@@ -461,7 +460,9 @@ class FOC_Controller:
 
     def reset(self, velocity, supply_voltage):
         self.d_ctrl.i_term[-1] = 0.0
-        self.q_ctrl.i_term[-1] = -velocity * self.motor.torque_constant / supply_voltage * pi/3.0
+        self.q_ctrl.i_term[-1] = (
+            -velocity * self.motor.torque_constant / supply_voltage * pi / 3.0
+        )
         self.cmd_q_filt[-1] = 0.0
 
     def update(self, t, target_torque, position, velocity, ia, ib, ic, supply_voltage):
@@ -472,15 +473,19 @@ class FOC_Controller:
         # Conversion from torque to quadrature current
         #     Torque =  pi/(sqrt(2)*3) * Kb * Iq
         #     Iq = Torque/Kb * sqrt(2)*3/pi
-        torque_constant = self.motor.torque_constant * 0.7404804896930609 # sqrt(2)*3/pi
+        torque_constant = (
+            self.motor.torque_constant * 0.7404804896930609
+        )  # sqrt(2)*3/pi
 
         # Have dynamic limit on torque based on supply current limit (aka a power limit)
         torque_limit = 0.0
         if self.supply_current_limit > 0.0:
             cmd_q_filt = self.cmd_q_filt[-1]
             if abs(cmd_q_filt) > 1e-3:
-                sqrt2 = 1.4142135623730951 # sqrt(2)
-                torque_limit = -torque_constant*self.supply_current_limit*sqrt2/cmd_q_filt
+                sqrt2 = 1.4142135623730951  # sqrt(2)
+                torque_limit = (
+                    -torque_constant * self.supply_current_limit * sqrt2 / cmd_q_filt
+                )
                 if torque_limit > 0.0:
                     target_torque = min(target_torque, torque_limit)
                 else:
@@ -501,17 +506,16 @@ class FOC_Controller:
         # Constants (for later)
         #
         s30 = 0.5  # sin(30)
-        c30 = 0.8660254037844387 # cos(30)
-        sqrt2d3 = 0.816496580927726 # sqrt(2/3)
-        i_alpha = sqrt2d3 * (ia  - s30*ib - s30*ic)
-        i_beta  = sqrt2d3 * (      c30*ib - c30*ic)
+        c30 = 0.8660254037844387  # cos(30)
+        sqrt2d3 = 0.816496580927726  # sqrt(2/3)
+        i_alpha = sqrt2d3 * (ia - s30 * ib - s30 * ic)
+        i_beta = sqrt2d3 * (c30 * ib - c30 * ic)
 
         # Motor electrial angle,
         #  the number of electical cycles for every mechanical rotor cycle depends
         #  on the number of motor poles-pairs.
         pole_pairs = self.motor.pole_pairs
         el_angle = position * pole_pairs - self.el_angle_offset[-1]
-
 
         # Park Tranform
         #  use rotor electrical angle to map i_alpha, i_beta currents into
@@ -521,8 +525,8 @@ class FOC_Controller:
         #  this is basicaly a rotatation matrix multiplication where by -el_angle
         s1 = sin(el_angle)
         c1 = cos(el_angle)
-        measured_id =   c1*i_alpha + s1*i_beta
-        measured_iq =  -s1*i_alpha + c1*i_beta
+        measured_id = c1 * i_alpha + s1 * i_beta
+        measured_iq = -s1 * i_alpha + c1 * i_beta
 
         # using iq to determine actual torque production
         # assume id is small enough that is does not effect magnetic field
@@ -540,7 +544,7 @@ class FOC_Controller:
 
         # perform circle limit on d/q commands
         # this limits the magnitude of the d/q command to 1.0 while keeping the angle the same
-        mag = sqrt(cmd_d*cmd_d + cmd_q*cmd_q)
+        mag = sqrt(cmd_d * cmd_d + cmd_q * cmd_q)
         if mag > 1.0:
             cmd_d /= mag
             cmd_q /= mag
@@ -559,14 +563,14 @@ class FOC_Controller:
         # Map d/q commands back to stator referenced values (inverse park transform)
         s2 = sin(el_angle2)
         c2 = cos(el_angle2)
-        cmd_alpha =  c2*cmd_d - s2*cmd_q
-        cmd_beta  =  s2*cmd_d + c2*cmd_q
+        cmd_alpha = c2 * cmd_d - s2 * cmd_q
+        cmd_beta = s2 * cmd_d + c2 * cmd_q
 
         # Map alpha/beta commands to 3-phase commands (inverse Clarke transform)
-        inv_sqrt3 = 0.5773502691896258 # 1/sqrt(3)
-        cmd_a = inv_sqrt3 * (      cmd_alpha                )
-        cmd_b = inv_sqrt3 * ( -s30*cmd_alpha + c30*cmd_beta )
-        cmd_c = inv_sqrt3 * ( -s30*cmd_alpha - c30*cmd_beta )
+        inv_sqrt3 = 0.5773502691896258  # 1/sqrt(3)
+        cmd_a = inv_sqrt3 * (cmd_alpha)
+        cmd_b = inv_sqrt3 * (-s30 * cmd_alpha + c30 * cmd_beta)
+        cmd_c = inv_sqrt3 * (-s30 * cmd_alpha - c30 * cmd_beta)
 
         # Now perform quasi- SVM (space vector modulation)
         #   See notes about SVM
@@ -577,9 +581,9 @@ class FOC_Controller:
 
         # Determine the difference between the commanded value of direct voltage
         # and what is should be based on velocity and current
-        cmd_vd = supply_voltage*self.cmd_d[-1]
+        cmd_vd = supply_voltage * self.cmd_d[-1]
         L = self.motor.terminal_inductance / sqrt(2)
-        est_vd = - el_velocity * measured_iq * L
+        est_vd = -el_velocity * measured_iq * L
         error_vd = cmd_vd - est_vd
 
         # Update estimate of el_angle_offset
@@ -620,24 +624,24 @@ class FOC_Controller:
         return (cmd_a, cmd_b, cmd_c)
 
 
-
-
 class FOC_CWrapper:
-    """ Wrapper around C++ implementation of FOC-algorithm
+    """Wrapper around C++ implementation of FOC-algorithm
     Makes interface to C++ functions almost exactly the same as the python implemenation.
     """
+
     def __init__(self, dt, motor, d_gains, q_gains, supply_current_limit):
         self.name = "C++ FOC"
         # I know this is frowned upon, but we don't want to import foc_py
         # if we are not using it -- especially since it needs to be compiled first
         import foc_py
+
         foc = foc_py.FOC()
         self.foc = foc
         foc.enableIncrementalAlignment(True)
 
         # adjust I gains by dt because C-implementation of FOC d/n do this
-        foc.setDGains(d_gains[0], d_gains[1]*dt)
-        foc.setQGains(q_gains[0], q_gains[1]*dt)
+        foc.setDGains(d_gains[0], d_gains[1] * dt)
+        foc.setQGains(q_gains[0], q_gains[1] * dt)
         foc.torque_constant = motor.torque_constant
         foc.max_torque = motor.max_torque
         foc.terminal_inductance = motor.terminal_inductance
@@ -681,11 +685,12 @@ class FOC_CWrapper:
     def update(self, t, target_torque, position, velocity, ia, ib, ic, supply_voltage):
         foc = self.foc
 
-        foc.update(self.cmds_v3, target_torque, position, velocity, ia, ib, ic, supply_voltage)
+        foc.update(
+            self.cmds_v3, target_torque, position, velocity, ia, ib, ic, supply_voltage
+        )
         cmd_a = self.cmds_v3.a
         cmd_b = self.cmds_v3.b
         cmd_c = self.cmds_v3.c
-
 
         self.t.append(t)
         self.input_target_torque.append(target_torque)
